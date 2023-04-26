@@ -38,7 +38,7 @@ type unitJSON struct {
 }
 
 func shortName(hostName string) string {
-	return strings.SplitN(hostName, ".", 1)[0]
+	return strings.Split(hostName, ".")[0]
 }
 
 // importJSONFromFile simply imports some JSON from a file
@@ -78,6 +78,7 @@ func apiMembers(omeAPI *api.AuthClient) {
 		log.Fatalf("Cannot read %s: %v", urlMembers, err)
 	}
 	gj := gjson.ParseBytes(bytes)
+	var hostName string
 	for n, gjn := range gj.Get("value").Array() {
 		if !gjn.Get("SKU").Exists() {
 			log.Warnf("No SKU found for item: %d", n)
@@ -87,8 +88,8 @@ func apiMembers(omeAPI *api.AuthClient) {
 		if !gjn.Get("Name").Exists() {
 			log.Warnf("No hostname defined for SKU: %s", sKU)
 		}
-		hostName := strings.ToLower(gjn.Get("Name").Str)
-		if !cfg.Output.FQDN {
+		hostName = strings.ToLower(gjn.Get("Name").String())
+		if cfg.Output.FQDN {
 			hostName = shortName(hostName)
 		}
 		fmt.Printf("%s %s %s %d %d\n",
