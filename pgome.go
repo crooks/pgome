@@ -37,6 +37,10 @@ type unitJSON struct {
 	Description      string
 }
 
+func shortName(hostName string) string {
+	return strings.SplitN(hostName, ".", 1)[0]
+}
+
 // importJSONFromFile simply imports some JSON from a file
 func importJSONFromFile(filename string) gjson.Result {
 	b, err := os.ReadFile(filename)
@@ -84,6 +88,9 @@ func apiMembers(omeAPI *api.AuthClient) {
 			log.Warnf("No hostname defined for SKU: %s", sKU)
 		}
 		hostName := strings.ToLower(gjn.Get("Name").Str)
+		if !cfg.Output.FQDN {
+			hostName = shortName(hostName)
+		}
 		fmt.Printf("%s %s %s %d %d\n",
 			sKU,
 			hostName,
@@ -134,7 +141,7 @@ func apiWarranty(omeAPI *api.AuthClient) {
 	if err != nil {
 		log.Fatalf("Unable to marshall output JSON: %v", err)
 	}
-	os.WriteFile(cfg.OutFile, data, 0644)
+	os.WriteFile(cfg.Output.Filename, data, 0644)
 }
 
 func main() {

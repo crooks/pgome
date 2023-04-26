@@ -16,8 +16,7 @@ type Flags struct {
 
 // Config contains the njmon_exporter configuration data
 type Config struct {
-	OutFile string `yaml:"outfile"`
-	API     struct {
+	API struct {
 		Username string `yaml:"username"`
 		Password string `yaml:"password"`
 		CertFile string `yaml:"certfile"`
@@ -27,6 +26,10 @@ type Config struct {
 		Journal  bool   `yaml:"journal"`
 		LevelStr string `yaml:"level"`
 	} `yaml:"logging"`
+	Output struct {
+		Filename string `yaml:"filename"`
+		FQDN     bool   `yaml:"fqdn"`
+	} `yaml:"output"`
 }
 
 // ParseConfig imports a yaml formatted config file into a Config struct
