@@ -89,7 +89,7 @@ func apiMembers(omeAPI *api.AuthClient) {
 			log.Warnf("No hostname defined for SKU: %s", sKU)
 		}
 		hostName = strings.ToLower(gjn.Get("Name").String())
-		if cfg.Output.FQDN {
+		if !cfg.Output.FQDN {
 			hostName = shortName(hostName)
 		}
 		fmt.Printf("%s %s %s %d %d\n",
