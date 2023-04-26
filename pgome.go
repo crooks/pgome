@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"strings"
@@ -63,8 +64,32 @@ func omeDateParse(omeDate string) (int64, error) {
 	return d.Unix(), nil
 }
 
+func apiMembers(omeAPI *api.AuthClient) {
+	urlMembers, err := url.JoinPath(cfg.API.URL, "redfish/v1/Systems/Members")
+	if err != nil {
+		log.Fatalf("Unable to parse Systems/Members URL: %v", err)
+	}
+	bytes, err := omeAPI.GetJSON(urlMembers)
+	if err != nil {
+		log.Fatalf("Cannot read %s: %v", urlMembers, err)
+	}
+	gj := gjson.ParseBytes(bytes)
+	for n, gjn := range gj.Get("value").Array() {
+		deviceID := gjn.Get("Id")
+		if !deviceID.Exists() {
+			log.Warnf("No Device ID found for item: %d", n)
+		}
+		hostName := gjn.Get("HostName")
+		if !hostName.Exists() {
+			log.Warnf("No hostname defined for device %s", deviceID)
+			continue
+		}
+		fmt.Printf("DeviceID: %s, Hostname: %s\n", deviceID, hostName)
+	}
+}
+
 func apiWarranty(omeAPI *api.AuthClient) {
-	urlWarranty, err := url.JoinPath(cfg.API.URL, "WarrantyService/Warranties")
+	urlWarranty, err := url.JoinPath(cfg.API.URL, "api/WarrantyService/Warranties")
 	if err != nil {
 		log.Fatalf("Unable to parse warranty URL: %v", err)
 	}
@@ -126,5 +151,9 @@ func main() {
 	}
 
 	omeAPI := api.NewBasicAuthClient(cfg.API.Username, cfg.API.Password, cfg.API.CertFile)
-	apiWarranty(omeAPI)
+	if flags.Warranty {
+		apiWarranty(omeAPI)
+	} else {
+		apiMembers(omeAPI)
+	}
 }

@@ -9,8 +9,9 @@ import (
 
 // Flags are the command line Flags
 type Flags struct {
-	Config string
-	Debug  bool
+	Config   string
+	Debug    bool
+	Warranty bool
 }
 
 // Config contains the njmon_exporter configuration data
@@ -63,6 +64,7 @@ func ParseFlags() *Flags {
 	f := new(Flags)
 	flag.StringVar(&f.Config, "config", "pgome.yml", "Path to pgome configuration file")
 	flag.BoolVar(&f.Debug, "debug", false, "Expand logging with Debug level messaging and format")
+	flag.BoolVar(&f.Warranty, "warranty", false, "Output warranty information")
 	flag.Parse()
 	return f
 }
