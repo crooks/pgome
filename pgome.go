@@ -79,12 +79,12 @@ func apiMembers(omeAPI *api.AuthClient) {
 			log.Warnf("No SKU found for item: %d", n)
 			continue
 		}
-		sKU := gjn.Get("Id").Str
+		sKU := gjn.Get("SKU").Str
 		if !gjn.Get("Name").Exists() {
 			log.Warnf("No hostname defined for SKU: %s", sKU)
 		}
 		hostName := strings.ToLower(gjn.Get("Name").Str)
-		fmt.Printf("%s %s %s\n", sKU, hostName, gjn.Get("model").Str)
+		fmt.Printf("%s %s %s\n", sKU, hostName, gjn.Get("Model").Str)
 	}
 }
 
