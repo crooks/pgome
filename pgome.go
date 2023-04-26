@@ -84,7 +84,13 @@ func apiMembers(omeAPI *api.AuthClient) {
 			log.Warnf("No hostname defined for SKU: %s", sKU)
 		}
 		hostName := strings.ToLower(gjn.Get("Name").Str)
-		fmt.Printf("%s %s %s\n", sKU, hostName, gjn.Get("Model").Str)
+		fmt.Printf("%s %s %s %d %d\n",
+			sKU,
+			hostName,
+			gjn.Get("Model").Str,
+			gjn.Get("ProcessorSummary.Count").Int(),
+			gjn.Get("MemorySummary.TotalSystemMemoryGiB").Int(),
+		)
 	}
 }
 
