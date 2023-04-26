@@ -75,16 +75,16 @@ func apiMembers(omeAPI *api.AuthClient) {
 	}
 	gj := gjson.ParseBytes(bytes)
 	for n, gjn := range gj.Get("value").Array() {
-		deviceID := gjn.Get("Id")
-		if !deviceID.Exists() {
-			log.Warnf("No Device ID found for item: %d", n)
-		}
-		hostName := gjn.Get("HostName")
-		if !hostName.Exists() {
-			log.Warnf("No hostname defined for device %s", deviceID)
+		if !gjn.Get("SKU").Exists() {
+			log.Warnf("No SKU found for item: %d", n)
 			continue
 		}
-		fmt.Printf("DeviceID: %s, Hostname: %s\n", deviceID, hostName)
+		sKU := gjn.Get("Id").Str
+		if !gjn.Get("Name").Exists() {
+			log.Warnf("No hostname defined for SKU: %s", sKU)
+		}
+		hostName := strings.ToLower(gjn.Get("Name").Str)
+		fmt.Printf("%s %s %s\n", sKU, hostName, gjn.Get("model").Str)
 	}
 }
 
