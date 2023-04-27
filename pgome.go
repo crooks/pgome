@@ -51,10 +51,12 @@ func shortName(hostName string) string {
 
 func cpuInfo(summary string) (family, model string) {
 	isXeon := rgxXeon.FindStringSubmatch(summary)
+	fmt.Println(isXeon)
 	if len(isXeon) == 2 {
 		return isXeon[0], isXeon[1]
 	}
 	isEpyc := rgxEpyc.FindStringSubmatch(summary)
+	fmt.Println(isEpyc)
 	if len(isEpyc) == 2 {
 		return isEpyc[0], isEpyc[1]
 	}
