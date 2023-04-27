@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"strings"
@@ -38,7 +39,11 @@ type unitJSON struct {
 }
 
 func shortName(hostName string) string {
-	return strings.Split(hostName, ".")[0]
+	// ParseIP returns nil for an invalid IP address.  The bold assumption is that an invalid IP is a hostname.
+	if net.ParseIP(hostName) == nil {
+		return strings.Split(hostName, ".")[0]
+	}
+	return hostName
 }
 
 // importJSONFromFile simply imports some JSON from a file
