@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -27,6 +28,8 @@ var (
 	cfg               *config.Config
 	flags             *config.Flags
 	errObjectNotFound error = errors.New("gjson: object not found")
+	rgxXeon                 = regexp.MustCompile("(Xeon).*([0-9]{4})")
+	rgxEpyc                 = regexp.MustCompile("(EPYC).*([0-9][A-Z][0-9]{2})")
 )
 
 type unitJSON struct {
@@ -44,6 +47,18 @@ func shortName(hostName string) string {
 		return strings.Split(hostName, ".")[0]
 	}
 	return hostName
+}
+
+func cpuInfo(summary string) (family, model string) {
+	isXeon := rgxXeon.FindStringSubmatch(summary)
+	if len(isXeon) == 2 {
+		return isXeon[0], isXeon[1]
+	}
+	isEpyc := rgxEpyc.FindStringSubmatch(summary)
+	if len(isEpyc) == 2 {
+		return isEpyc[0], isEpyc[1]
+	}
+	return "", ""
 }
 
 // importJSONFromFile simply imports some JSON from a file
@@ -97,11 +112,13 @@ func apiMembers(omeAPI *api.AuthClient) {
 		if !cfg.Output.FQDN {
 			hostName = shortName(hostName)
 		}
-		fmt.Printf("%s %s %s %d %d\n",
+		cpuFamily, cpuModel := cpuInfo(gjn.Get("ProcessorSummary.Model").String())
+		fmt.Printf("%s %s %s %d %s %s %d\n",
 			sKU,
 			hostName,
 			gjn.Get("Model").Str,
 			gjn.Get("ProcessorSummary.Count").Int(),
+			cpuFamily, cpuModel,
 			gjn.Get("MemorySummary.TotalSystemMemoryGiB").Int(),
 		)
 	}
