@@ -51,25 +51,23 @@ func shortName(hostName string) string {
 
 func cpuInfo(summary string) (family, model string) {
 	isXeon := rgxXeon.FindStringSubmatch(summary)
-	fmt.Println(isXeon)
-	if len(isXeon) == 2 {
-		return isXeon[0], isXeon[1]
+	if len(isXeon) == 3 {
+		return isXeon[1], isXeon[2]
 	}
 	isEpyc := rgxEpyc.FindStringSubmatch(summary)
-	fmt.Println(isEpyc)
-	if len(isEpyc) == 2 {
-		return isEpyc[0], isEpyc[1]
+	if len(isEpyc) == 3 {
+		return isEpyc[1], isEpyc[2]
 	}
-	return "", ""
+	return "Unk ", "Unk "
 }
 
 // importJSONFromFile simply imports some JSON from a file
-func importJSONFromFile(filename string) gjson.Result {
+func importJSONFromFile(filename string) (gjson.Result, error) {
 	b, err := os.ReadFile(filename)
 	if err != nil {
-		log.Fatalf("Cannot import json: %v", err)
+		log.Fatalf("Cannot import json from: %s", filename)
 	}
-	return gjson.ParseBytes(b)
+	return gjson.ParseBytes(b), err
 }
 
 // gjDateParse returns an Epoch Integer representation of a JSON date string in OME format
@@ -90,16 +88,23 @@ func omeDateParse(omeDate string) (int64, error) {
 	return d.Unix(), nil
 }
 
-func apiMembers(omeAPI *api.AuthClient) {
-	urlMembers, err := url.JoinPath(cfg.API.URL, "redfish/v1/Systems/Members")
+func readAPI(apiUrl string) (gjson.Result, error) {
+	omeAPI := api.NewBasicAuthClient(cfg.API.Username, cfg.API.Password, cfg.API.CertFile)
+	fullUrl, err := url.JoinPath(cfg.API.URL, apiUrl)
 	if err != nil {
-		log.Fatalf("Unable to parse Systems/Members URL: %v", err)
+		log.Errorf("Unable to construct URL from: %s and %s", cfg.API.URL, apiUrl)
+		return gjson.Result{}, err
 	}
-	bytes, err := omeAPI.GetJSON(urlMembers)
+	bytes, err := omeAPI.GetJSON(fullUrl)
 	if err != nil {
-		log.Fatalf("Cannot read %s: %v", urlMembers, err)
+		log.Fatalf("Cannot read URL: %s", fullUrl)
+		return gjson.Result{}, err
 	}
 	gj := gjson.ParseBytes(bytes)
+	return gj, err
+}
+
+func apiMembers(gj gjson.Result) {
 	var hostName string
 	for n, gjn := range gj.Get("value").Array() {
 		if !gjn.Get("SKU").Exists() {
@@ -115,7 +120,7 @@ func apiMembers(omeAPI *api.AuthClient) {
 			hostName = shortName(hostName)
 		}
 		cpuFamily, cpuModel := cpuInfo(gjn.Get("ProcessorSummary.Model").String())
-		fmt.Printf("%s %s %s %d %s %s %d\n",
+		fmt.Printf("%s %-20s %-30s %d %s %s %d\n",
 			sKU,
 			hostName,
 			gjn.Get("Model").Str,
@@ -126,16 +131,7 @@ func apiMembers(omeAPI *api.AuthClient) {
 	}
 }
 
-func apiWarranty(omeAPI *api.AuthClient) {
-	urlWarranty, err := url.JoinPath(cfg.API.URL, "api/WarrantyService/Warranties")
-	if err != nil {
-		log.Fatalf("Unable to parse warranty URL: %v", err)
-	}
-	bytes, err := omeAPI.GetJSON(urlWarranty)
-	if err != nil {
-		log.Fatalf("Cannot read %s: %v", urlWarranty, err)
-	}
-	gj := gjson.ParseBytes(bytes)
+func apiWarranty(gj gjson.Result) {
 	var jout []*unitJSON
 	for n, gjn := range gj.Get("value").Array() {
 		gjIdent := gjn.Get("DeviceIdentifier")
@@ -188,10 +184,19 @@ func main() {
 		log.Current = log.StdLogger{Level: loglev}
 	}
 
-	omeAPI := api.NewBasicAuthClient(cfg.API.Username, cfg.API.Password, cfg.API.CertFile)
+	var gj gjson.Result
 	if flags.Warranty {
-		apiWarranty(omeAPI)
+		gj, err = readAPI("api/WarrantyService/Warranties")
+		if err != nil {
+			log.Fatalf("API read Warrantyfailed with: %v", err)
+		}
+		apiWarranty(gj)
 	} else {
-		apiMembers(omeAPI)
+		gj, err := importJSONFromFile("systems.json")
+		//gj, err := readAPI("redfish/v1/Systems/Members")
+		if err != nil {
+			log.Fatalf("API read Members failed with: %v", err)
+		}
+		apiMembers(gj)
 	}
 }
