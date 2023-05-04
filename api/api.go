@@ -6,7 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -19,6 +19,14 @@ type AuthClient struct {
 	HTTPClient *http.Client
 }
 
+type JSONFile struct {
+	Filename string
+}
+
+type Json interface {
+	GetJSON() ([]byte, error)
+}
+
 // NewBasicAuthClient returns an instance of AuthClient
 func NewBasicAuthClient(username, password, certFile string) *AuthClient {
 	return &AuthClient{
@@ -26,6 +34,21 @@ func NewBasicAuthClient(username, password, certFile string) *AuthClient {
 		Password:   password,
 		HTTPClient: httpAuthClient(certFile),
 	}
+}
+
+func NewJSONFile(filename string) *JSONFile {
+	return &JSONFile{
+		Filename: filename,
+	}
+}
+
+// GetJSON simply imports some JSON from a file
+func (j *JSONFile) GetJSON() ([]byte, error) {
+	b, err := os.ReadFile(j.Filename)
+	if err != nil {
+		return nil, err
+	}
+	return b, err
 }
 
 // GetJSON takes a URL relating to a Rest API and returns the resulting JSON as a byte slice.
@@ -52,7 +75,7 @@ func httpAuthClient(certFile string) *http.Client {
 	if rootCAs == nil {
 		rootCAs = x509.NewCertPool()
 	}
-	certs, err := ioutil.ReadFile(certFile)
+	certs, err := os.ReadFile(certFile)
 	if errors.Is(err, os.ErrNotExist) {
 		//log.Println("No additional certificates imported")
 	} else if err != nil {
@@ -76,7 +99,7 @@ func (s *AuthClient) doRequest(req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +123,7 @@ func GetNoAuth(url string) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	bytes, err := ioutil.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

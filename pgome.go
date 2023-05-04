@@ -61,15 +61,6 @@ func cpuInfo(summary string) (family, model string) {
 	return "Unk ", "Unk "
 }
 
-// importJSONFromFile simply imports some JSON from a file
-func importJSONFromFile(filename string) (gjson.Result, error) {
-	b, err := os.ReadFile(filename)
-	if err != nil {
-		log.Fatalf("Cannot import json from: %s", filename)
-	}
-	return gjson.ParseBytes(b), err
-}
-
 // gjDateParse returns an Epoch Integer representation of a JSON date string in OME format
 func gjDateParse(gjDateItem gjson.Result) (int64, error) {
 	if !gjDateItem.Exists() {
@@ -86,6 +77,14 @@ func omeDateParse(omeDate string) (int64, error) {
 		return 0, err
 	}
 	return d.Unix(), nil
+}
+
+func foo(j api.Json) (gjson.Result, error) {
+	bytes, err := j.GetJSON()
+	if err != nil {
+		return gjson.Result{}, err
+	}
+	return gjson.ParseBytes(bytes), err
 }
 
 func readAPI(apiUrl string) (gjson.Result, error) {
@@ -185,6 +184,7 @@ func main() {
 	}
 
 	var gj gjson.Result
+	apiSource := api.NewJSONFile("systems.json")
 	if flags.Warranty {
 		gj, err = readAPI("api/WarrantyService/Warranties")
 		if err != nil {
@@ -192,7 +192,7 @@ func main() {
 		}
 		apiWarranty(gj)
 	} else {
-		gj, err := importJSONFromFile("systems.json")
+		gj, err := foo(apiSource)
 		//gj, err := readAPI("redfish/v1/Systems/Members")
 		if err != nil {
 			log.Fatalf("API read Members failed with: %v", err)
