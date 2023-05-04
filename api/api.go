@@ -16,6 +16,7 @@ import (
 type AuthClient struct {
 	Username   string
 	Password   string
+	URL        string
 	HTTPClient *http.Client
 }
 
@@ -25,6 +26,7 @@ type JSONFile struct {
 
 type Json interface {
 	GetJSON() ([]byte, error)
+	SetSrc(src string)
 }
 
 // NewBasicAuthClient returns an instance of AuthClient
@@ -51,17 +53,25 @@ func (j *JSONFile) GetJSON() ([]byte, error) {
 	return b, err
 }
 
+func (j *JSONFile) SetSrc(src string) {
+	j.Filename = src
+}
+
 // GetJSON takes a URL relating to a Rest API and returns the resulting JSON as a byte slice.
-func (s *AuthClient) GetJSON(url string) ([]byte, error) {
-	req, err := http.NewRequest("GET", url, nil)
+func (j *AuthClient) GetJSON() ([]byte, error) {
+	req, err := http.NewRequest("GET", j.URL, nil)
 	if err != nil {
 		return nil, err
 	}
-	bytes, err := s.doRequest(req)
+	bytes, err := j.doRequest(req)
 	if err != nil {
 		return nil, err
 	}
 	return bytes, nil
+}
+
+func (j *AuthClient) SetSrc(src string) {
+	j.URL = src
 }
 
 // httpAuthClient creates a new instance of http.Client with support for

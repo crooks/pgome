@@ -94,7 +94,8 @@ func readAPI(apiUrl string) (gjson.Result, error) {
 		log.Errorf("Unable to construct URL from: %s and %s", cfg.API.URL, apiUrl)
 		return gjson.Result{}, err
 	}
-	bytes, err := omeAPI.GetJSON(fullUrl)
+	omeAPI.SetSrc(fullUrl)
+	bytes, err := omeAPI.GetJSON()
 	if err != nil {
 		log.Fatalf("Cannot read URL: %s", fullUrl)
 		return gjson.Result{}, err
