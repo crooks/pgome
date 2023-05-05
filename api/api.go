@@ -38,10 +38,8 @@ func NewBasicAuthClient(username, password, certFile string) *AuthClient {
 	}
 }
 
-func NewJSONFile(filename string) *JSONFile {
-	return &JSONFile{
-		Filename: filename,
-	}
+func NewJSONFile() *JSONFile {
+	return &JSONFile{}
 }
 
 // GetJSON simply imports some JSON from a file

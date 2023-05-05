@@ -22,6 +22,8 @@ import (
 const (
 	omeDateFmt    = "2006-01-02 15:04:05.000"
 	outputDateFmt = "2006-01-02"
+	urlWarranty   = "api/WarrantyService/Warranties"
+	urlMembers    = "redfish/v1/Systems/Members"
 )
 
 var (
@@ -47,6 +49,15 @@ func shortName(hostName string) string {
 		return strings.Split(hostName, ".")[0]
 	}
 	return hostName
+}
+
+func mkURL(u string) (fullURL string) {
+	var err error
+	fullURL, err = url.JoinPath(cfg.API.URL, u)
+	if err != nil {
+		log.Fatalf("Unable to construct URL from: %s and %s", cfg.API.URL, u)
+	}
+	return
 }
 
 func cpuInfo(summary string) (family, model string) {
@@ -79,29 +90,12 @@ func omeDateParse(omeDate string) (int64, error) {
 	return d.Unix(), nil
 }
 
-func foo(j api.Json) (gjson.Result, error) {
+func readAPI(j api.Json) (gjson.Result, error) {
 	bytes, err := j.GetJSON()
 	if err != nil {
 		return gjson.Result{}, err
 	}
 	return gjson.ParseBytes(bytes), err
-}
-
-func readAPI(apiUrl string) (gjson.Result, error) {
-	omeAPI := api.NewBasicAuthClient(cfg.API.Username, cfg.API.Password, cfg.API.CertFile)
-	fullUrl, err := url.JoinPath(cfg.API.URL, apiUrl)
-	if err != nil {
-		log.Errorf("Unable to construct URL from: %s and %s", cfg.API.URL, apiUrl)
-		return gjson.Result{}, err
-	}
-	omeAPI.SetSrc(fullUrl)
-	bytes, err := omeAPI.GetJSON()
-	if err != nil {
-		log.Fatalf("Cannot read URL: %s", fullUrl)
-		return gjson.Result{}, err
-	}
-	gj := gjson.ParseBytes(bytes)
-	return gj, err
 }
 
 func apiMembers(gj gjson.Result) {
@@ -185,15 +179,17 @@ func main() {
 	}
 
 	var gj gjson.Result
-	apiSource := api.NewJSONFile("systems.json")
+	apiSource := api.NewBasicAuthClient(cfg.API.Username, cfg.API.Password, cfg.API.CertFile)
 	if flags.Warranty {
-		gj, err = readAPI("api/WarrantyService/Warranties")
+		apiSource.SetSrc(mkURL(urlWarranty))
+		gj, err = readAPI(apiSource)
 		if err != nil {
 			log.Fatalf("API read Warrantyfailed with: %v", err)
 		}
 		apiWarranty(gj)
 	} else {
-		gj, err := foo(apiSource)
+		apiSource.SetSrc(mkURL(urlMembers))
+		gj, err := readAPI(apiSource)
 		//gj, err := readAPI("redfish/v1/Systems/Members")
 		if err != nil {
 			log.Fatalf("API read Members failed with: %v", err)
